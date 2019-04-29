@@ -3,27 +3,27 @@ import threading
 import sys
 
 
+# sys.argv[1]           puerto del socket
+
+
 class Server:
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     connections = []
     
-    def __init__(self):
-        self.sock.bind(('0.0.0.0', 10000))
+    def __init__(self, puerto):
+        self.sock.bind(('0.0.0.0', int(puerto)))
         self.sock.listen(1)
 
     def handler(self, c, a):
         while True:
             data = c.recv(1024)
-            if data == 0:
-                print("Cerrando conexiones")
-                self.closeall()
-            
             for connection in self.connections:
                 connection.send(bytes(data))
             if not data:
-                connection.remove(c)
+                print("Cerrando conexion {}",c.getaddrinfo(self))
                 c.close()
-                break
+            break
+        
                 
     def run(self):
         while True:
@@ -34,29 +34,17 @@ class Server:
             self.connections.append(c)
             print(self.connections)
             
-    def closeall(self)
-        for connection in connections:
-            print("Cerrando conexion {c}")
-            connection.remove(c)
-            c.close()
-            thread.exit()
+#    def close_all(self):
+#        for connection in connections:
+#            print("Cerrando conexion {c}")
+#            connection.remove(c)
+#            c.close()
+#            thread.exit()
      
             
             
             
-server = Server()
+server = Server(sys.argv[1])
 server.run()
-
-
-
-
-#if data == startswith("exit"):
-#    for connection in connections:
-#        print("Cerrando conexion {c}")
-#        connection.remove(c)
-#        c.close()
-#        thread.exit()
-            
-
 
 
