@@ -31,7 +31,7 @@ class Server:
             cThread.daemon = True                            #Me permite cerrar el programa por mas que los threads esten abiertos
             cThread.start()
             self.connections.append(c)
-            print(self.connections)
+            print("Abriendo conexion " + str(a[0]) + ":" + str(a[0]))
             
 #    def close_all(self):
 #        for connection in connections:
