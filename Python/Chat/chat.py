@@ -2,14 +2,12 @@ import socket
 import threading
 import sys
 
-
 # sys.argv[1]           puerto del socket
-
 
 class Server:
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     connections = []
-    
+
     def __init__(self, puerto):
         self.sock.bind(('0.0.0.0', int(puerto)))
         self.sock.listen(1)
@@ -23,8 +21,7 @@ class Server:
                 print("Cerrando conexion {}",c.getaddrinfo(self))
                 c.close()
             break
-        
-                
+
     def run(self):
         while True:
             c, a = self.sock.accept()
@@ -33,17 +30,15 @@ class Server:
             cThread.start()
             self.connections.append(c)
             print(self.connections)
-            
+
 #    def close_all(self):
 #        for connection in connections:
 #            print("Cerrando conexion {c}")
 #            connection.remove(c)
 #            c.close()
 #            thread.exit()
-     
-            
-            
-            
+
+
 server = Server(sys.argv[1])
 server.run()
 
