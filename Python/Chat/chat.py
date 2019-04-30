@@ -19,23 +19,23 @@ class Server:
             for connection in self.connections:
                 connection.send(bytes(data))
             if not data:
-                print("Cerrando conexion " + str(a[0]) + ":" + str(a[0]))
+                print("Cerrando conexion " + str(a[0]) + ":" + str(a[1]))
+                self.connections.remove(c)
                 c.close()
-            break
-        
+                break
                 
     def run(self):
         while True:
             c, a = self.sock.accept()
             cThread = threading.Thread(target = self.handler, args=(c,a))
-            cThread.daemon = True                            #Me permite cerrar el programa por mas que los threads esten abiertos
+            cThread.daemon = True
             cThread.start()
             self.connections.append(c)
-            print("Abriendo conexion " + str(a[0]) + ":" + str(a[0]))
+            print("Abriendo conexion " + str(a[0]) + ":" + str(a[1]))
             
 #    def close_all(self):
 #        for connection in connections:
-#            print("Cerrando conexion {c}")
+#            print("Cerrando conexion " + str(a[0]) + ":" + str(a[1]))
 #            connection.remove(c)
 #            c.close()
 #            thread.exit()
