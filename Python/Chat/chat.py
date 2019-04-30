@@ -1,6 +1,8 @@
 import socket
 import threading
 import sys
+import signal
+import time
 
 # sys.argv[1]           puerto del socket
 
@@ -12,6 +14,15 @@ class Server:
     def __init__(self, puerto):
         self.sock.bind(('0.0.0.0', int(puerto)))
         self.sock.listen(1)
+        
+    def __del__(self):
+        signal.signal(signal.SIGTERM, self.__del__)
+        signal.signal(signal.SIGINT, self.__del__)
+        print("Cerrando servidor")
+        for connection in self.connections:
+            print("Cerrando conexion " + str(a[0]) + ":" + str(a[1]))
+            self.close()
+            connection.remove(c)
 
     def handler(self, c, a):
         while True:

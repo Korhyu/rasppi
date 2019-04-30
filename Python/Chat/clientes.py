@@ -10,3 +10,19 @@ import time
 # sys.argv[1] numero de puerto a abrir
 # sys.argv[2] numero de clientes a conectar
 
+class Cliente (IP, puerto):
+	sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	#self.sock.bind(('0.0.0.0', int(puerto)))
+	try:
+		sock.connetct((IP, puerto))
+	except:
+		print("No se pudo conectar")
+	
+class Administrador:
+	clientes = []
+	
+	
+	
+	
+	
+	def handler(self, c, a):
