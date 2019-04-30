@@ -20,7 +20,7 @@ class Server:
             for connection in self.connections:
                 connection.send(bytes(data))
             if not data:
-                print("Cerrando conexion {}",c.getaddrinfo(self))
+                print("Cerrando conexion " + str(a[0]) + ":" + str(a[0]))
                 c.close()
             break
         
@@ -40,9 +40,7 @@ class Server:
 #            connection.remove(c)
 #            c.close()
 #            thread.exit()
-     
-            
-            
+
             
 server = Server(sys.argv[1])
 server.run()
