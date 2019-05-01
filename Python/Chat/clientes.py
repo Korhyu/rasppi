@@ -4,23 +4,31 @@ import system
 import time
 
 
-# sys.argv[1] numero de puerto a abrir
-# sys.argv[2] numero de clientes a conectar
+# sys.argv[1] IP a conectarse
+# sys.argv[2] numero de puerto a abrir
+# sys.argv[3] numero de clientes a conectar
 
-class Cliente (IP, puerto):
-	
 
-	def __init__(self, c, a):
+class Cliente:
+	IP = 0
+	puerto = 0
+	cliente_numero = 0
+
+	def __init__(self, c, a, ip, port, cn):
 		sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		self.sock.bind((IP, int(puerto)))
-			
+		IP = ip
+		puerto = port
+		cliente_numero = cn
+		
+	def run():
 		try:
 			sock.connetct((IP, puerto))
 		except:
 			print("No se pudo conectar")
 
         while True:
-            data = c.recv(1024)
+            data = "Dato del cliente " + cliente_numero
             for connection in self.connections:
                 connection.send(bytes(data))
             if not data:
@@ -32,37 +40,37 @@ class Cliente (IP, puerto):
 
 class Administrador:
 	clientes = []
-	cant_clientes = 0
+	IP = 0
 	puerto = 0
+	cant_clientes = 0
+	cont = 0
 
-
-	def __init__(self, port, cc):
+	def __init__(self, ip, port, cc):
 		cant_clientes = cc
 		puerto = port
-
+		IP = ip
 
 	def run(self):
-		cont = 0
 		while cant_clientes > cont:
+			cont += 1
 			sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-			self.sock.bind(('0.0.0.0', int(puerto)))
+			self.sock.bind((IP, int(puerto)))
 			c, a = self.sock.accept()
         	cThread = threading.Thread(target = self.handler, args=(c,a))
             cThread.daemon = True
             cThread.start()
             self.clientes.append(c)
             print("Abriendo conexion "+ cont + " en: " + str(a[0]) + ":" + str(a[1]))
-            cont += 1
             time.sleeps(0.5)
 
         while True
-        	time.sleeps(1)
+        	time.sleeps(2)
 
     def handler(self, c, a):
-    	cliente = Cliente(self, c, a)
+    	cliente = Cliente(self, c, a, IP, puerto, cont)
 
             
 
 
-administrador = Administrador(sys.argv[1], sys.argv[2])
+administrador = Administrador(sys.argv[1], sys.argv[2], sys.argv[3])
 administrador.run()
