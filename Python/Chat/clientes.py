@@ -52,7 +52,7 @@ class Administrador:
             cThread.start()
             self.clientes.append(c)
             print("Abriendo conexion "+ cont + " en: " + str(a[0]) + ":" + str(a[1]))
-            cont++
+            cont += 1
             time.sleeps(0.5)
 
         while True
