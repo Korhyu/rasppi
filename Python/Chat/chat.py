@@ -21,9 +21,10 @@ class Server:
         print("Cerrando servidor")
         for connection in self.connections:
             print("Cerrando conexion " + str(a[0]) + ":" + str(a[1]))
-            self.close()
             connection.remove(c)
-
+            self.close()
+            
+            
     def handler(self, c, a):
         while True:
             data = c.recv(1024)
