@@ -1,1 +1,9 @@
 *.pyc
+/C-C++/Sender/build/
+/C-C++/Sender/dist/
+/C-C++/Prueba1/build/
+/C-C++/Prueba1/dist/
+/C-C++/Prueba2/CppApplication_1/build/
+/C-C++/Prueba2/CppApplication_1/dist/
+/C-C++/Prueba2/Cliente/build/
+/C-C++/Prueba2/Cliente/dist/
