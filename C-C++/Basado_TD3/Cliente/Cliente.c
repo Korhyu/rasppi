@@ -23,8 +23,8 @@ int main(int argc, char *argv[])
 
     // Creo un socket del tipo UDP
     //
-    int fd = socket(AF_INET, SOCK_DGRAM, 0);
-    if (fd < 0) {
+    int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (sockfd < 0) {
         perror("socket");
         return 1;
     }
@@ -34,7 +34,7 @@ int main(int argc, char *argv[])
     int yes = 1;
     if (
         setsockopt(
-            fd, SOL_SOCKET, SO_REUSEADDR, (char*) &yes, sizeof(yes)
+            sockfd, SOL_SOCKET, SO_REUSEADDR, (char*) &yes, sizeof(yes)
         ) < 0
     ){
        perror("Reusing ADDR failed");
@@ -51,7 +51,7 @@ int main(int argc, char *argv[])
 
     // Bindeo el socket
     //
-    if (bind(fd, (struct sockaddr*) &addr, sizeof(addr)) < 0) {
+    if (bind(sockfd, (struct sockaddr*) &addr, sizeof(addr)) < 0) {
         perror("bind");
         return 1;
     }
@@ -63,7 +63,7 @@ int main(int argc, char *argv[])
     mreq.imr_interface.s_addr = htonl(INADDR_ANY);
     if (
         setsockopt(
-            fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char*) &mreq, sizeof(mreq)
+            sockfd, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char*) &mreq, sizeof(mreq)
         ) < 0
     ){
         perror("setsockopt");
@@ -76,7 +76,7 @@ int main(int argc, char *argv[])
         char msgbuf[MSGBUFSIZE];
         int addrlen = sizeof(addr);
         int nbytes = recvfrom(
-            fd,
+            sockfd,
             msgbuf,
             MSGBUFSIZE,
             0,
