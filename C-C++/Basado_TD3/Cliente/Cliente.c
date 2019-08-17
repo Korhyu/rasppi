@@ -21,7 +21,7 @@ int main(int argc, char *argv[])
     char* group = argv[1]; // e.g. 239.255.255.250 for SSDP
     int port = atoi(argv[2]); // 0 if error, which is an invalid port
 
-// create what looks like an ordinary UDP socket
+    // Creo un socket del tipo UDP
     //
     int fd = socket(AF_INET, SOCK_DGRAM, 0);
     if (fd < 0) {
@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    // allow multiple sockets to use the same PORT number
+    // Permito que muchos sockets usen el mismo puerto
     //
     int yes = 1;
     if (
@@ -41,15 +41,15 @@ int main(int argc, char *argv[])
        return 1;
     }
 
-        // set up destination address
+    // Configuro la direccion de destino
     //
     struct sockaddr_in addr;
     memset(&addr, 0, sizeof(addr));
     addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = htonl(INADDR_ANY); // differs from sender
+    addr.sin_addr.s_addr = htonl(INADDR_ANY);   // Es dinstinta al programa que envia
     addr.sin_port = htons(port);
 
-    // bind to receive address
+    // Bindeo el socket
     //
     if (bind(fd, (struct sockaddr*) &addr, sizeof(addr)) < 0) {
         perror("bind");
@@ -83,10 +83,17 @@ int main(int argc, char *argv[])
             (struct sockaddr *) &addr,
             &addrlen
         );
-        if (nbytes < 0) {
+        if (nbytes >= 0)
+        {
+            sendto(sockfd, msgbuf, sizeof(msgbuf), MSG_DONTWAIT,
+                (struct sockaddr *) &addr, addrlen);
+        }
+        else
+        {
             perror("recvfrom");
             return 1;
         }
+        
         msgbuf[nbytes] = '\0';
         puts(msgbuf);
      }
