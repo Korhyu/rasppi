@@ -85,16 +85,16 @@ int main(int argc, char *argv[])
 
         sleep(delay_secs); // Unix sleep is seconds
         
-        
+        /*
         gettimeofday(&tv, NULL);
         message= '\0';
         puts(message);
         printf("-%ld\n", ((tv.tv_sec * 1000000 + tv.tv_usec)));
 
-        
         time_t t = time(0);
         sprintf(message, "time is %-24.24s", ctime(&t));
-        
+        */
+
         printf("%s\n", message);
 
      }
