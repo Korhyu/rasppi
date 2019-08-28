@@ -11,7 +11,7 @@
 #define EXAMPLE_PORT 4000
 #define EXAMPLE_GROUP "239.0.0.1"
 #define DELAY_ENVIO 2
-
+#define MSGBUFSIZE 200
 
 int main(int argc, char *argv[])
 {
@@ -20,10 +20,6 @@ int main(int argc, char *argv[])
     struct timeval tv;
     int port;
     int nbytes;
-    struct timespec *t;
-    
-
-    t = (struct timespec *) malloc(sizeof(t));
 
 
     if (argc != 3)
@@ -45,7 +41,7 @@ int main(int argc, char *argv[])
     // !!! If test requires, make these configurable via args
     //
     const int delay_secs = DELAY_ENVIO;
-    const char *message = "Comunicacion_iniciada";
+    const char message[MSGBUFSIZE] = "Comunicacion_iniciada";
 
 
     // create what looks like an ordinary UDP socket
@@ -79,12 +75,13 @@ int main(int argc, char *argv[])
 
     // now just sendto() our destination!
     while (1) {
-        char ch = 0;
 
-        nbytes = clock_gettime(CLOCK_MONOTONIC, &t);
-
-        sprintf(message, nbytes, sizeof(nbytes));
-
+        gettimeofday(&tv, NULL);
+        //message= '\0';
+        //puts(message);
+        long ticks = ((tv.tv_sec * 1000000 + tv.tv_usec));
+        sprintf(message, &ticks, sizeof(ticks));
+        
         nbytes = sendto( fd, message, strlen(message),
                          0, (struct sockaddr*) &addr, 
                          sizeof(addr) );
@@ -93,20 +90,11 @@ int main(int argc, char *argv[])
             return 1;
         }
 
+        printf("-%ld\n", ticks);
         sleep(delay_secs); // Unix sleep is seconds
         
-
-        /*
-        gettimeofday(&tv, NULL);
-        message= '\0';
-        puts(message);
-        printf("-%ld\n", ((tv.tv_sec * 1000000 + tv.tv_usec)));
-
-        time_t t = time(0);
-        sprintf(message, "time is %-24.24s", ctime(&t));
-        */
-
-        printf("%s\n", message);
+        //time_t t = time(0);
+        //sprintf(message, "time is %-24.24s", ctime(&t));
 
      }
 

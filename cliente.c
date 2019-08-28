@@ -20,7 +20,7 @@ int main(int argc, char *argv[])
     char N_IP[] = EXAMPLE_GROUP;
     struct timeval tv;
     int port;
-    int nbytes;
+    int nbytes[2];
     
     if (argc != 3)
     {
@@ -86,17 +86,20 @@ int main(int argc, char *argv[])
     // now just sendto() our destination!
     while (1) {
         char ch = 0;
-        printf("Antes\n");
-        nbytes = recvfrom( fd, (void *)message, sizeof(message), 0, (struct sockaddr*) &addr, &addrlen );
-        //int nbytes = recvfrom( fd, msgbuf, MSGBUFSIZE, 0, (struct sockaddr *) &addr, &addrlen );
-
-        
+        nbytes[0] = recvfrom( fd, (void *)message, sizeof(message), 0, (struct sockaddr*) &addr, &addrlen );
+        nbytes[1] = sendto( fd, message, strlen(message), 0, (struct sockaddr*) &addr, sizeof(addr) );
         printf("%s\n", message);
-        if (nbytes < 0) {
+        if (nbytes[0] < 0) {
             perror("recvfrom");
             return 1;
         }
         
+        if (nbytes[1] < 0) {
+            perror("sendto");
+            return 1;
+        }
+
+
         sleep(delay_secs); // Unix sleep is seconds
      }
 
