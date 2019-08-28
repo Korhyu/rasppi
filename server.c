@@ -92,10 +92,11 @@ int main(int argc, char *argv[])
 
         printf("-%ld\n", ticks);
         sleep(delay_secs); // Unix sleep is seconds
-        
-        //time_t t = time(0);
-        //sprintf(message, "time is %-24.24s", ctime(&t));
 
+        nbytes = recvfrom( fd, (void *)message, sizeof(message), 0, (struct sockaddr*) &addr, sizeof(addr) );
+        printf("R: %s", message);
+
+    
      }
 
 
