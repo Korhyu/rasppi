@@ -40,7 +40,7 @@ int main(int argc, char *argv[])
     // !!! If test requires, make these configurable via args
     //
     const int delay_secs = DELAY_ENVIO;
-    const char *message = "Comunicacion iniciada";
+    const char *message = "Cliente conectado";
 
 
     // create what looks like an ordinary UDP socket
@@ -72,11 +72,15 @@ int main(int argc, char *argv[])
         return 1;
     }
 
+    //sendto( fd, message, strlen(message), 0, (struct sockaddr*) &addr, sizeof(addr) );
+    //printf("%s\n", message);
+
     // now just sendto() our destination!
     while (1) {
         char ch = 0;
-        nbytes = recvfrom( fd, message, sizeof(message), 0, (struct sockaddr*) &addr, sizeof(addr) );
-        //         recvfrom( fd, msgbuf, MSGBUFSIZE, 0, (struct sockaddr *) &addr, &addrlen );
+        printf("Antes\n");
+        nbytes = recvfrom( fd, message, sizeof(message), MSG_WAITALL, (struct sockaddr*) &addr, sizeof(addr) );
+        //int nbytes = recvfrom( fd, msgbuf, MSGBUFSIZE, 0, (struct sockaddr *) &addr, &addrlen );
         printf("%s\n", message);
         if (nbytes < 0) {
             perror("sendto");
@@ -84,7 +88,6 @@ int main(int argc, char *argv[])
         }
 
         sleep(delay_secs); // Unix sleep is seconds
-
      }
 
 
