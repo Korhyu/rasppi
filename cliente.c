@@ -10,7 +10,8 @@
 
 #define EXAMPLE_PORT 4000
 #define EXAMPLE_GROUP "239.0.0.1"
-#define DELAY_ENVIO 5
+#define DELAY_ENVIO 2
+#define MSGBUFSIZE 200
 
 
 int main(int argc, char *argv[])
@@ -20,7 +21,7 @@ int main(int argc, char *argv[])
     struct timeval tv;
     int port;
     int nbytes;
-
+    
     if (argc != 3)
     {
        printf("Ni IP ni puerto especificado\n");
@@ -40,7 +41,7 @@ int main(int argc, char *argv[])
     // !!! If test requires, make these configurable via args
     //
     const int delay_secs = DELAY_ENVIO;
-    const char *message = "Cliente conectado";
+    const char message[MSGBUFSIZE] = "Cliente conectado";
 
 
     // create what looks like an ordinary UDP socket
@@ -53,6 +54,7 @@ int main(int argc, char *argv[])
 
     // set up destination address
     struct sockaddr_in addr;
+    int addrlen = sizeof(addr);
     memset(&addr, 0, sizeof(addr));
     addr.sin_family = AF_INET;
     addr.sin_addr.s_addr = inet_addr(group);
@@ -72,6 +74,12 @@ int main(int argc, char *argv[])
         return 1;
     }
 
+    if (bind(fd, (struct sockaddr *)&addr, sizeof(addr))==-1)
+    {
+        perror("bind failed");
+        exit(1);
+    }
+
     //sendto( fd, message, strlen(message), 0, (struct sockaddr*) &addr, sizeof(addr) );
     //printf("%s\n", message);
 
@@ -79,14 +87,16 @@ int main(int argc, char *argv[])
     while (1) {
         char ch = 0;
         printf("Antes\n");
-        nbytes = recvfrom( fd, message, sizeof(message), MSG_WAITALL, (struct sockaddr*) &addr, sizeof(addr) );
+        nbytes = recvfrom( fd, (void *)message, sizeof(message), 0, (struct sockaddr*) &addr, &addrlen );
         //int nbytes = recvfrom( fd, msgbuf, MSGBUFSIZE, 0, (struct sockaddr *) &addr, &addrlen );
+
+        
         printf("%s\n", message);
         if (nbytes < 0) {
-            perror("sendto");
+            perror("recvfrom");
             return 1;
         }
-
+        
         sleep(delay_secs); // Unix sleep is seconds
      }
 

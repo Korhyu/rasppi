@@ -10,7 +10,7 @@
 
 #define EXAMPLE_PORT 4000
 #define EXAMPLE_GROUP "239.0.0.1"
-#define DELAY_ENVIO 1
+#define DELAY_ENVIO 2
 
 
 int main(int argc, char *argv[])
@@ -20,6 +20,11 @@ int main(int argc, char *argv[])
     struct timeval tv;
     int port;
     int nbytes;
+    struct timespec *t;
+    
+
+    t = (struct timespec *) malloc(sizeof(t));
+
 
     if (argc != 3)
     {
@@ -75,6 +80,11 @@ int main(int argc, char *argv[])
     // now just sendto() our destination!
     while (1) {
         char ch = 0;
+
+        nbytes = clock_gettime(CLOCK_MONOTONIC, &t);
+
+        sprintf(message, nbytes, sizeof(nbytes));
+
         nbytes = sendto( fd, message, strlen(message),
                          0, (struct sockaddr*) &addr, 
                          sizeof(addr) );
@@ -85,6 +95,7 @@ int main(int argc, char *argv[])
 
         sleep(delay_secs); // Unix sleep is seconds
         
+
         /*
         gettimeofday(&tv, NULL);
         message= '\0';
