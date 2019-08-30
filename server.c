@@ -80,7 +80,7 @@ int main(int argc, char *argv[])
         //message= '\0';
         //puts(message);
         long ticks = ((tv.tv_sec * 1000000 + tv.tv_usec));
-        sprintf(message, "%l", ticks);
+        sprintf(message, "%ld", ticks);
         
 
         nbytes = sendto( fd, message, strlen(message),
