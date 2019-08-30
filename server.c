@@ -80,8 +80,9 @@ int main(int argc, char *argv[])
         //message= '\0';
         //puts(message);
         long ticks = ((tv.tv_sec * 1000000 + tv.tv_usec));
-        sprintf(message, &ticks, sizeof(ticks));
+        sprintf(message, "%l", ticks);
         
+
         nbytes = sendto( fd, message, strlen(message),
                          0, (struct sockaddr*) &addr, 
                          sizeof(addr) );
