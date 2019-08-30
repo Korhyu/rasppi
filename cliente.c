@@ -35,8 +35,8 @@ int main(int argc, char *argv[])
 
     else
     {
-        char* group = argv[1];      // e.g. 239.255.255.250 for SSDP
-        port = atoi(argv[2]);       // 0 if error, which is an invalid port
+        char* group = argv[1];      // Entra por agumento el IP
+        port = atoi(argv[2]);       // Entra por agumento el puerto
     }
     
     // !!! If test requires, make these configurable via args
@@ -45,7 +45,7 @@ int main(int argc, char *argv[])
     const char message[MSGBUFSIZE] = "Cliente conectado";
 
 
-    // create what looks like an ordinary UDP socket
+    // Creo el socket UDP
     //
     int fd = socket(AF_INET, SOCK_DGRAM, 0);
     if (fd < 0) {
@@ -53,7 +53,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    // set up destination address
+    // Configuro el IP y puerto
     struct sockaddr_in addr;
     int addrlen = sizeof(addr);
     memset(&addr, 0, sizeof(addr));
@@ -61,7 +61,7 @@ int main(int argc, char *argv[])
     addr.sin_addr.s_addr = inet_addr(group);
     addr.sin_port = htons(port);
 
-    // use setsockopt() to request that the kernel join a multicast group
+    // Use setsockopt() para pedirle al kernel unirse a un multicast group
     //
     struct ip_mreq mreq;
     mreq.imr_multiaddr.s_addr = inet_addr(group);
@@ -84,15 +84,21 @@ int main(int argc, char *argv[])
     //sendto( fd, message, strlen(message), 0, (struct sockaddr*) &addr, sizeof(addr) );
     //printf("%s\n", message);
 
-    // now just sendto() our destination!
+    // Envio en loop
     while (1) 
     {
         nbytes[0] = recvfrom( fd, (void *)message, sizeof(message), 0, (struct sockaddr*) &addr, &addrlen );
-        resultado = strtol(message, &message, 10);
+        //resultado = strtol(message, &message, 10);
         //printf("%s\n", message);
+        /*
+        gettimeofday(&tv, NULL);
+        long ticks = ((tv.tv_sec * 1000000 + tv.tv_usec));
+        sprintf(message, &ticks, sizeof(ticks));
+        */
         nbytes[1] = sendto( fd, resultado, strlen(resultado), 0, (struct sockaddr*) &addr, sizeof(addr) );
         printf("%s\n", resultado);
         memset(message,0,strlen(message));
+        
         if (nbytes[0] < 0) {
             perror("recvfrom");
             return 1;

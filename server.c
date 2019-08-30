@@ -90,7 +90,7 @@ int main(int argc, char *argv[])
             return 1;
         }
 
-        printf("-%ld\n", ticks);
+        printf("E: %s\n", message);
         sleep(delay_secs); // Unix sleep is seconds
 
         nbytes = recvfrom( fd, (void *)message, sizeof(message), 0, (struct sockaddr*) &addr, sizeof(addr) );
