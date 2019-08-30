@@ -94,7 +94,7 @@ int main(int argc, char *argv[])
         sleep(delay_secs); // Unix sleep is seconds
 
         nbytes = recvfrom( fd, (void *)message, sizeof(message), 0, (struct sockaddr*) &addr, sizeof(addr) );
-        printf("R: %s", message);
+        printf("R: %s\n", message);
 
     
      }

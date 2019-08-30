@@ -21,6 +21,7 @@ int main(int argc, char *argv[])
     struct timeval tv;
     int port;
     int nbytes[2];
+    long resultado;
     
     if (argc != 3)
     {
@@ -84,11 +85,14 @@ int main(int argc, char *argv[])
     //printf("%s\n", message);
 
     // now just sendto() our destination!
-    while (1) {
-        char ch = 0;
+    while (1) 
+    {
         nbytes[0] = recvfrom( fd, (void *)message, sizeof(message), 0, (struct sockaddr*) &addr, &addrlen );
-        nbytes[1] = sendto( fd, message, strlen(message), 0, (struct sockaddr*) &addr, sizeof(addr) );
-        printf("%s\n", message);
+        resultado = strtol(message, &message, 10);
+        //printf("%s\n", message);
+        nbytes[1] = sendto( fd, resultado, strlen(resultado), 0, (struct sockaddr*) &addr, sizeof(addr) );
+        printf("%s\n", resultado);
+        memset(message,0,strlen(message));
         if (nbytes[0] < 0) {
             perror("recvfrom");
             return 1;
