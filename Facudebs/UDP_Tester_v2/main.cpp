@@ -221,6 +221,7 @@ void StartEchoServer(struct sockaddr_in &params)
 					  &client_address_size ) < 0 )
 		{
 			//TODO: Log some info here.
+			printf("Cliente conectado");
 			return;
 		}
 
