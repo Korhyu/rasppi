@@ -10,8 +10,8 @@
 #include <time.h>
 #include <errno.h>
 
-#include "main.h"
-
+//#include "main.h"
+//
 
 #define SERVER_MODE 1
 #define CLIENT_MODE 2
