@@ -54,6 +54,7 @@ void ConfigurarEstructuraServidor (int n_ip, long port, struct sockaddr_in &addr
 
 void WriteLog(char *msg )
 {
+	/*
 	char	  szDateTime[40];
 	struct tm systime;
 	struct timeval tv;
@@ -72,6 +73,7 @@ void WriteLog(char *msg )
 	sprintf( &szDateTime[ strlen( szDateTime ) ], ".%03ld\t", tv.tv_usec / 1000 );
 
 	printf( "%s - %s\n", szDateTime, msg);
+	*/
 }
 
 int UsageMsg( void )
@@ -205,7 +207,9 @@ void StartEchoServer(struct sockaddr_in &params)
 
 	char line[100];
 	sprintf(line, "Listen Port setted to: %d", ntohs(params.sin_port));
+	printf("Estoy vivo1\n");
 	WriteLog(line);
+	//printf("Estoy vivo2\n");
 
 	// 4 - Ready to listen messages!!!
 	while( 1 )
@@ -215,6 +219,8 @@ void StartEchoServer(struct sockaddr_in &params)
 		char buf[1024];
 		
 		memset(buf,0,sizeof(buf));
+
+		printf("Estoy vivo\n");
 
 		//Warning: recvfrom is in blocking mode by default, waiting for a message
 		if( recvfrom( sock, buf, sizeof (buf), 0, (struct sockaddr *)&client,
