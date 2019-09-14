@@ -1,14 +1,14 @@
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/time.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include <time.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 
-
-#define EXAMPLE_PORT 4000
+#define EXAMPLE_PORT 54000
 #define EXAMPLE_GROUP "239.0.0.1"
 #define DELAY_ENVIO 2
 #define MSGBUFSIZE 200
@@ -18,17 +18,22 @@ int main(int argc, char *argv[])
 {
     char* group;
     char N_IP[] = EXAMPLE_GROUP;
+    char * auxiliarresto;
     struct timeval tv;
     int port;
     int nbytes[2];
     long resultado;
+    long ticks[2];
+    int delay_secs = DELAY_ENVIO;
+    char mess_rec[MSGBUFSIZE];
+    char mess_env[MSGBUFSIZE] = "Cliente 1";
     
     if (argc != 3)
     {
        printf("Ni IP ni puerto especificado\n");
        printf("Se asigna IP %s y %d\n", EXAMPLE_GROUP, EXAMPLE_PORT);
 
-       group = &N_IP;
+       group = N_IP;
        port = EXAMPLE_PORT;
        //return 1;
     }
@@ -41,8 +46,7 @@ int main(int argc, char *argv[])
     
     // !!! If test requires, make these configurable via args
     //
-    const int delay_secs = DELAY_ENVIO;
-    const char message[MSGBUFSIZE] = "Cliente conectado";
+
 
 
     // Creo el socket UDP
@@ -61,43 +65,51 @@ int main(int argc, char *argv[])
     addr.sin_addr.s_addr = inet_addr(group);
     addr.sin_port = htons(port);
 
-    // Use setsockopt() para pedirle al kernel unirse a un multicast group
+    // Uso setsockopt() para pedirle al kernel unirse a un multicast group
     //
     struct ip_mreq mreq;
     mreq.imr_multiaddr.s_addr = inet_addr(group);
     mreq.imr_interface.s_addr = htonl(INADDR_ANY);
-    if (
-        setsockopt(
-            fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char*) &mreq, sizeof(mreq)
-        ) < 0
-    ){
+    
+    if ( setsockopt( fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char*) &mreq, sizeof(mreq) ) < 0 )
+    {
         perror("setsockopt");
         return 1;
     }
+    
+     if(connect(fd, (struct sockaddr *)&addr, sizeof(addr)) < 0) 
+    { 
+        printf("\n Error : Connect Failed \n"); 
+        exit(0); 
+    } 
 
-    if (bind(fd, (struct sockaddr *)&addr, sizeof(addr))==-1)
-    {
-        perror("bind failed");
-        exit(1);
-    }
-
-    //sendto( fd, message, strlen(message), 0, (struct sockaddr*) &addr, sizeof(addr) );
-    //printf("%s\n", message);
+    
+    printf("Envio al servidor\n");
+    nbytes[1] = sendto( fd, mess_env, sizeof(mess_env), 0, (struct sockaddr*) &addr, sizeof(addr) );
+    
+    sleep(1);
 
     // Envio en loop
     while (1) 
     {
-        nbytes[0] = recvfrom( fd, (void *)message, sizeof(message), 0, (struct sockaddr*) &addr, &addrlen );
-        //resultado = strtol(message, &message, 10);
-        //printf("%s\n", message);
+        nbytes[0] = recvfrom( fd, (void *)mess_rec, sizeof(mess_rec), 0, (struct sockaddr*) &addr, &addrlen );
+        printf("Chequeo Recibo\n");
+        //resultado = strtol(mess_env, &auxiliarresto, 10);
+        //printf("%s\n", mess_env);
+        
+        sleep(1);
+
         /*
         gettimeofday(&tv, NULL);
-        long ticks = ((tv.tv_sec * 1000000 + tv.tv_usec));
-        sprintf(message, &ticks, sizeof(ticks));
+        ticks[0] = ((tv.tv_sec * 1000000 + tv.tv_usec));
+        //sprintf(mess_env, &ticks[0], sizeof(ticks));
         */
-        nbytes[1] = sendto( fd, resultado, strlen(resultado), 0, (struct sockaddr*) &addr, sizeof(addr) );
-        printf("%s\n", resultado);
-        memset(message,0,strlen(message));
+
+        nbytes[1] = sendto( fd, mess_env, sizeof(mess_env), 0, (struct sockaddr*) &addr, sizeof(addr) );
+        printf("Chequeo Envio\n");
+
+        //printf("Recibido: %s \t a %ld ticks\n", mess_rec, ticks[0]);
+        memset(mess_env,0,sizeof(mess_env));
         
         if (nbytes[0] < 0) {
             perror("recvfrom");
@@ -110,7 +122,7 @@ int main(int argc, char *argv[])
         }
 
 
-        sleep(delay_secs); // Unix sleep is seconds
+        //sleep(delay_secs); // Unix sleep is seconds
      }
 
 
