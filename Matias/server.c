@@ -5,26 +5,24 @@
 #include <arpa/inet.h>
 
 #include <netinet/in.h>
-
 #include <stdio.h>
-
 #include <stdlib.h>
-
 #include <string.h>
-
 #include <unistd.h>
+#include <time.h>
+#include <sys/time.h>
 
 struct in_addr localInterface;
-
 struct sockaddr_in groupSock;
-
 int sd;
+
+#define IP_ADDR "192.168.2.100"
+
 
 char databuf[1024] = "Multicast test message lol!";
 
 int datalen = sizeof(databuf);
-
-    
+  
 
 int main (int argc, char *argv[ ])
 
@@ -98,7 +96,7 @@ printf("Disabling the loopback...OK.\n");
 
 /* multicast capable interface. */
 
-localInterface.s_addr = inet_addr("192.168.0.229");
+localInterface.s_addr = inet_addr(IP_ADDR);
 
 if(setsockopt(sd, IPPROTO_IP, IP_MULTICAST_IF, (char *)&localInterface, sizeof(localInterface)) < 0)
 
@@ -119,17 +117,29 @@ else
 /* groupSock sockaddr structure. */
 
 /*int datalen = 1024;*/
+
+struct timeval tv;
+long ticks;
+int cuenta=0;
+int lala;
 while(1)
 {
+gettimeofday(&tv, NULL);
+ticks= ((tv.tv_sec * 1000000 + tv.tv_usec));
+sprintf(databuf, "%ld", ticks);
 if(sendto(sd, databuf, datalen, 0, (struct sockaddr*)&groupSock, sizeof(groupSock)) < 0)
 
 {perror("Sending datagram message error");}
 
 else
+    {cuenta++;
+    printf("Send N %d ...OK\n", cuenta);}
 
-    printf("Sending datagram message...OK\n");
 
-//sleep(1);
+ticks= ((tv.tv_sec * 1000000 + tv.tv_usec));
+printf( "%d : %ld \n", cuenta, ticks);
+
+sleep(1);
 }
 /* Try the re-read from the socket if the loopback is not disable
 
