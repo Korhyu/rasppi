@@ -16,9 +16,9 @@
 #define SERVER_MODE 1
 #define CLIENT_MODE 2
 #define ARG_ERROR 10
-#define EXAMPLE_PORT 54000
+#define DEFAULT_PORT 54000
 //#define EXAMPLE_IP "127.0.0.1"
-#define EXAMPLE_IP "239.0.0.1"
+#define DEFAULT_IP "239.0.0.1"
 
 
 
@@ -54,7 +54,7 @@ void ConfigurarEstructuraServidor (int n_ip, long port, struct sockaddr_in &addr
 
 void WriteLog(char *msg )
 {
-	/*
+	
 	char	  szDateTime[40];
 	struct tm systime;
 	struct timeval tv;
@@ -73,19 +73,22 @@ void WriteLog(char *msg )
 	sprintf( &szDateTime[ strlen( szDateTime ) ], ".%03ld\t", tv.tv_usec / 1000 );
 
 	printf( "%s - %s\n", szDateTime, msg);
-	*/
+	
 }
 
 int UsageMsg( void )
 {
 	printf("Usage: udptester --<server or client> <[In sever case: use listen port here] [In client case: use ip and port from server here]> \n");
 	printf("For example: udptester --server 54900\n");
-	printf("For example: udptester --client 192.168.0.100 54900\n");
+	printf("For example: udptester --client 54900\n");
 	exit( EXIT_FAILURE );
 }
 
-int GetServerOrClient( int argc, char** argv, struct sockaddr_in &params )
+int GetServerOrClient( int argc, char** argv, struct sockaddr_in &params, int *sock )
 {
+	struct in_addr localInterface;
+	int size_addr;
+
 	if(argc > 2)
 	{
 		//Common parameter for server and client.
@@ -95,55 +98,50 @@ int GetServerOrClient( int argc, char** argv, struct sockaddr_in &params )
 		
 		if( !strcmp(argv[1], "--server" ) )
 		{
-			params.sin_addr.s_addr = htonl(INADDR_ANY); //Here we say that accept any address.
-			params.sin_port = htons( (unsigned short int) strtol(argv[2], NULL, 10) ); //Here we set the port that we use to listen.
+			*sock = socket(AF_INET, SOCK_DGRAM, 0);
+			if (sock < 0) 
+			{
+				perror("opening datagram socket");
+				exit(1);
+			}
+
+			// Configuro la IP y el puerto
+		    size_addr = sizeof(params);
+		    memset(&params, 0, size_addr);
+		    params.sin_family = AF_INET;
+		    params.sin_addr.s_addr = inet_addr(DEFAULT_IP);
+		    params.sin_port = htons(DEFAULT_PORT);
+
+			//groupSock.sin_family = AF_INET;
+			//groupSock.sin_addr.s_addr = inet_addr("225.1.1.1");
+			//groupSock.sin_port = htons(5555);
+
+			/*
+		    * Disable loopback so you do not receive your own datagrams.
+			*/
+		    char loopch=0;
+		    int size_loopch = sizeof(loopch);
+		    if (setsockopt(*sock, IPPROTO_IP, IP_MULTICAST_LOOP, (char *)&loopch, sizeof(loopch)) < 0)
+		    {
+		      perror("setting IP_MULTICAST_LOOP:");
+		      close(*sock);
+		      exit(1);
+	    	}
+
+			localInterface.s_addr = inet_addr("9.5.1.1");
+			if (setsockopt(*sock, IPPROTO_IP, IP_MULTICAST_IF, (char *)&localInterface,sizeof(localInterface)) < 0)
+			{
+				perror("setting local interface");
+				exit(1);
+			}
 			return SERVER_MODE;
 		}
 		
-		/*
-		if( !strcmp(argv[1], "--server" ) )
-		{
-			//params.sin_addr.s_addr = htonl(INADDR_ANY); //Here we say that accept any address.
-			//params.sin_port = htons( (unsigned short int) strtol(argv[2], NULL, 10) ); //Here we set the port that we use to listen.
-			
-			char n_ip;
-			long n_port;
-
-			if( !strcmp(argv[2], "" ) )
-			{
-				n_ip = inet_addr(argv[2]);
-				n_port = (unsigned short int) strtol(argv[3], NULL, 10);
-			}
-			else
-			{
-				n_ip = inet_addr(EXAMPLE_IP);
-				n_port = EXAMPLE_PORT;
-			}
-
-			int size_addr = sizeof(addr);
-			memset(&addr, 0, size_addr);
-			params.sin_family = AF_INET;
-			params.sin_addr.s_addr = n_ip;			// Cuidado! addr.sin_addr.s_addr = inet_addr(n_ip)
-			params.sin_port = htons(n_port);
-
-			return SERVER_MODE;
-		}
-		*/
-
+		
 		if( !strcmp(argv[1], "--client" ) )
 		{
-			/*
-			params.sin_addr.s_addr = inet_addr(argv[2]); //Here we say that accept our client is going to connect to this address.
-			params.sin_port = htons( (unsigned short int) strtol(argv[3], NULL, 10) ); //Here we set the port of the server that we are going to connect.
+			
 			return CLIENT_MODE;
-			*/
-
-
-			// CODIGO JOSE ------------------------------------------------------------------------------------------------
-			params.sin_addr.s_addr = inet_addr(EXAMPLE_IP); //Here we say that accept our client is going to connect to this address.
-			params.sin_port = htons( (unsigned short int) strtol(argv[2], NULL, 10) ); //Here we set the port of the server that we are going to connect.
-			return CLIENT_MODE;
-			// ------------------------------------------------------------------------------------------------------------
 		}
 	}
 
@@ -153,7 +151,7 @@ int GetServerOrClient( int argc, char** argv, struct sockaddr_in &params )
 void StartEchoServer(struct sockaddr_in &params)
 {
 	// 1 - Create socket
-	int sock;	
+	int sock;
 
 	if( ( sock = socket( AF_INET, SOCK_DGRAM, 0 ) ) < 0 )
 	{
@@ -168,13 +166,13 @@ void StartEchoServer(struct sockaddr_in &params)
     int size_addr = sizeof(addr);
     memset(&addr, 0, size_addr);
     params.sin_family = AF_INET;
-    params.sin_addr.s_addr = inet_addr(EXAMPLE_IP);
+    params.sin_addr.s_addr = inet_addr(DEFAULT_IP);
     //addr.sin_port = htons(port);
 
     // Uso setsockopt() para solicitarle al kernel unirse a un multicast EXAMPLE_IP
     //
     struct ip_mreq mreq;
-    mreq.imr_multiaddr.s_addr = inet_addr(EXAMPLE_IP);
+    mreq.imr_multiaddr.s_addr = inet_addr(DEFAULT_IP);
     mreq.imr_interface.s_addr = htonl(INADDR_ANY);
 	if (setsockopt(sock, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char*) &mreq, sizeof(mreq) ) < 0 )
     {
@@ -206,8 +204,8 @@ void StartEchoServer(struct sockaddr_in &params)
 	}
 
 	char line[100];
+	//sprintf(line, "Listen Port setted to: %d \t IP: %s", ntohs(params.sin_port), inet_ntop(AF_INET, &(params.sin_addr), str, INET_ADDRSTRLEN));
 	sprintf(line, "Listen Port setted to: %d", ntohs(params.sin_port));
-	printf("Estoy vivo1\n");
 	WriteLog(line);
 	//printf("Estoy vivo2\n");
 
@@ -220,7 +218,7 @@ void StartEchoServer(struct sockaddr_in &params)
 		
 		memset(buf,0,sizeof(buf));
 
-		printf("Estoy vivo\n");
+		//printf("Estoy vivo\n");
 
 		//Warning: recvfrom is in blocking mode by default, waiting for a message
 		if( recvfrom( sock, buf, sizeof (buf), 0, (struct sockaddr *)&client,
@@ -252,6 +250,12 @@ void StartEchoClient(struct sockaddr_in &params)
 		//TODO: Log some info here.
 		return;
 	}
+
+	if (setsockopt(sock, IPPROTO_IP, IP_MULTICAST_IF, (char *)&params, sizeof(params)) < 0) 
+	{
+	    perror("setting local interface");
+	    exit(1);
+  	}
 
 	int i = 0;
 
@@ -290,7 +294,9 @@ void StartEchoClient(struct sockaddr_in &params)
 int main( int argc, char** argv )
 {
 	struct sockaddr_in addres_info;
-	int mode = GetServerOrClient(argc, argv, addres_info);
+	int sock;
+
+	int mode = GetServerOrClient(argc, argv, addres_info, &sock);
 
 	if( mode < 0 )
 	{
