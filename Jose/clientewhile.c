@@ -19,12 +19,22 @@ char databuf[MSJ_LENGTH];
 
 FILE * fptr;
 
+int get_timetag(char* data, char* ttp)
+{
+	int i;
+	int sizett = sizeof(*ttp);
+
+	strncpy(ttp, data, 16);						//Copio los prieros 16 caracteres que son el timestamp
+	strcat(ttp, "\0");
+
+	return 0;
+}
+
 
 int main(int argc, char *argv[])
 {
 	/* Create a datagram socket on which to receive. */
 	sd = socket(AF_INET, SOCK_DGRAM, 0);
-
 	if(sd < 0)
 	{
 		perror("Opening datagram socket error");
@@ -43,14 +53,13 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 	else
-		printf("Setting SO_REUSEADDR...OK.\n");
-    
+		printf("Setting SO_REUSEADDR...OK.\n");    
 
 	/* Bind to the proper port number with the IP address */
-
 	/* specified as INADDR_ANY. */
 
 	memset((char *) &localSock, 0, sizeof(localSock));
+
 	localSock.sin_family = AF_INET;
 	localSock.sin_port = htons(4321);
 	localSock.sin_addr.s_addr = INADDR_ANY;
@@ -63,7 +72,8 @@ int main(int argc, char *argv[])
 	}
 
 	else
-		printf("Binding datagram socket...OK.\n");
+
+	printf("Binding datagram socket...OK.\n");
 
 	/* Join the multicast group 226.1.1.1 on the local 203.106.93.94 */
 	/* interface. Note that this IP_ADD_MEMBERSHIP option must be */
@@ -72,29 +82,28 @@ int main(int argc, char *argv[])
 
 	group.imr_multiaddr.s_addr = inet_addr(IP_MCST);
 	group.imr_interface.s_addr = inet_addr(IP_ADDR);
-
 	if(setsockopt(sd, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *)&group, sizeof(group)) < 0)
 	{
-		perror("Adding multicast group error");
-		close(sd);
-		exit(1);
+	perror("Adding multicast group error");
+	close(sd);
+	exit(1);
 	}
-	else
-		printf("Adding multicast group...OK.\n");
 
+	else
+	printf("Adding multicast group...OK.\n");
 	/* Read from the socket. */
 	datalen = sizeof(databuf);
 
 	struct timeval tv;
-	long ticks[CANTIDAD_ENVIOS];
-	long cuenta=0;
-	int cont;
+	long ticks;
+	int cuenta=0;
+	char timetag[20];				//String donde almaceno el time tag
 
 	// Si existe el archivo lo piso para crear uno nuevo
-	fptr = fopen("outputf.txt", "w+");
+	fptr = fopen("outputw.txt", "w+");
 	fclose(fptr);
 
-	for (cont=1; cont < CANTIDAD_ENVIOS; cont++)
+	while (1)
 	{
 		if(read(sd, databuf, datalen) < 0)
 		{
@@ -104,27 +113,29 @@ int main(int argc, char *argv[])
 		}
 		else
 		{
-			cuenta++;
 			gettimeofday(&tv, NULL);
-			ticks[cont]= ((tv.tv_sec * 1000000 + tv.tv_usec));
+			ticks= ((tv.tv_sec * 1000000 + tv.tv_usec));
+			cuenta++;
+
 			if(IMPRIMIR == 1)
 			{
-				//printf("Reading N %ld...OK.\n", cuenta);
+				printf("Reading N %d...OK.\n", cuenta);
 				printf("Mensaje enviado por el servidor: \"%s\"\n", databuf);
-				printf( "Mensaje numero %ld, \t ticks%ld \n", cuenta, ticks[cont]);
+				printf( "%d : %ld \n", cuenta, ticks);
+			}
+
+			get_timetag(databuf, timetag);
+			
+			fptr = fopen("outputw.txt", "a+");
+			fprintf(fptr, "%s,%ld\n",timetag, ticks);
+			fclose(fptr);
+
+			if (strcmp(databuf,FIN_TRANSM) == 0)
+			{
+				printf("Fin de transmicion, recividos %d mensajes\n", cuenta);
+				return 0;
 			}
 		}
 	}
-	
-	//Genero el LOG
-	fptr = fopen("outputf.txt", "a+");
-	for (cont=1; cont < CANTIDAD_ENVIOS; cont++)
-	{
-		fprintf(fptr, "%s,%ld\n",databuf, ticks[cont]);
-	}
-	fclose(fptr);
-
-	printf("Recividos %d mensajes\n", cont);
-
 	return 0;
 }
