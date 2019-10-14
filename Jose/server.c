@@ -1,9 +1,6 @@
 #include <sys/types.h>
-
 #include <sys/socket.h>
-
 #include <arpa/inet.h>
-
 #include <netinet/in.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -11,6 +8,7 @@
 #include <unistd.h>
 #include <time.h>
 #include <sys/time.h>
+#include <math.h>
 #include "defines.h"
 
 struct in_addr localInterface;
@@ -32,7 +30,49 @@ void crear_datos ()
 		datos[i] = (i % 10) + 48;
 	}
 }
-  
+
+int ch_enviados()							//Funcion que analiza el paquete recivido y devuelve un nibble con '1' donde se envia un canal
+{
+	int ch;
+
+	ch = 7;
+
+	return ch;
+}
+
+char * crear_encabezado()
+{
+	/*Analizar si no es mejor dejar el timestamp en vez del cont_msj*/
+
+	char log_msj[8];			//Envio la cantidad de caracteres del mensaje sin contar los encabezados
+	char ch_env[8];				//Envia los canales que estan en el mensaje actuar
+	char msj_id[8];				//Un identificador del numero de mensaje enviado
+	char* encabezado;
+	static uint cont_msj = 0;
+
+	//char encabezado[strlen(log_msj) + strlen(ch_env) + strlen(msj_id) + 4];
+
+	if (((encabezado = malloc(sizeof(char) * (strlen(log_msj) + strlen(ch_env) + strlen(msj_id) + 4)))) == NULL)
+       return (NULL);
+
+
+	sprintf(log_msj, "%ld", strlen(datos));		//Verifico el largo del string
+	sprintf(ch_env, "%d", ch_enviados());					//Consigo los canales enviados *Harcodeados actualmente*
+	sprintf(msj_id, "%d", cont_msj);			//Numero de identificacion del mensaje
+
+	cont_msj++;
+	cont_msj = cont_msj % 10000;			//Establezco un limite para el contador de mensajes
+
+	strcat(encabezado, log_msj);
+	strcat(encabezado, "|");
+	strcat(encabezado, ch_env);
+	strcat(encabezado, "|");
+	strcat(encabezado, msj_id);
+
+	return encabezado;
+}
+
+
 
 int main (int argc, char *argv[ ])
 {
@@ -105,6 +145,8 @@ int main (int argc, char *argv[ ])
 		sprintf(timestamp, "%ld", ticks);
 		strcat(buffer, timestamp);
 		strcat(buffer, "|");
+		strcat(buffer, crear_encabezado());
+		strcat(buffer, "|");
 		strcat(buffer, datos);
 
 		if(sendto(sd, buffer, sizeof(buffer), 0, (struct sockaddr*)&groupSock, sizeof(groupSock)) < 0)
@@ -119,6 +161,16 @@ int main (int argc, char *argv[ ])
 			posicion = strpbrk(buffer, "|");
 			*posicion = '\0';
 			*/
+			
+			//Impresion de cantidad de mensajes enviados (para ver si el servidor esta vivo)
+			if( CANTIDAD_ENVIOS >= 1000)
+			{
+				if((i%(1000000/DEMORA_ENVIO)) == 0)
+				{
+					printf("Mensaje n: %d enviado\n",i);
+				}
+			}
+
 			if(i >= CANTIDAD_ENVIOS)
 			{
 				strcpy(buffer,FIN_TRANSM);
@@ -129,7 +181,7 @@ int main (int argc, char *argv[ ])
 				printf("Fin de envios, enviados %d mensajes considerando el mensaje de fin\n",i+1);
 				return 0;
 			}
-			usleep(2900);
+			usleep(DEMORA_ENVIO);
 		}
 
 

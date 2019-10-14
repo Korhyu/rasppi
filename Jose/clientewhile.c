@@ -1,5 +1,3 @@
-/* Receiver/client multicast Datagram example. */
-
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
@@ -21,13 +19,56 @@ FILE * fptr;
 
 int get_timetag(char* data, char* ttp)
 {
-	int i;
 	int sizett = sizeof(*ttp);
 
 	strncpy(ttp, data, 16);						//Copio los prieros 16 caracteres que son el timestamp
 	strcat(ttp, "\0");
 
 	return 0;
+}
+
+int get_header(char* data, char* ttp, char* hep)
+{
+	int i,posp,posu;
+	int cont=0;
+
+	//Busco la posicion del primer pipe
+	for(i=0; i<=40; i++)
+	{
+		*(ttp+i) = *(data+i);
+
+		if(*(data+i) == '|')
+		{
+			posp = i;
+			break;
+		}
+	}
+
+	//Busco la posicion del ultimo pipe
+	for(i = sizeof(hep); i < posp; i--)
+	{
+		if(*(data+i) == '|')
+		{
+			posu = i;
+
+			break;
+		}
+	}
+
+		//Copio desde el primero hasta el ultimo en el string header
+	for(i = posp; i <= posu ; i++)
+	{
+		*(hep+i) = *(data+i);
+		cont++;
+	}
+	*(hep+i) = '\0';
+
+	/*
+	strncpy(ttp, data, 16);						//Copio los prieros 16 caracteres que son el timestamp
+	strcat(ttp, "\0");
+	*/
+
+	return cont;
 }
 
 
@@ -98,6 +139,7 @@ int main(int argc, char *argv[])
 	long ticks;
 	int cuenta=0;
 	char timetag[20];				//String donde almaceno el time tag
+	char header[200];				//String donde almaceno los datos del Header para luego analizarlos
 
 	// Si existe el archivo lo piso para crear uno nuevo
 	fptr = fopen("outputw.txt", "w+");
@@ -124,10 +166,11 @@ int main(int argc, char *argv[])
 				printf( "%d : %ld \n", cuenta, ticks);
 			}
 
-			get_timetag(databuf, timetag);
+			//get_timetag(databuf, timetag);
+			get_header(databuf, timetag, header);
 			
 			fptr = fopen("outputw.txt", "a+");
-			fprintf(fptr, "%s,%ld\n",timetag, ticks);
+			fprintf(fptr, "%s,%ld,%s\n",timetag, ticks,header);
 			fclose(fptr);
 
 			if (strcmp(databuf,FIN_TRANSM) == 0)
