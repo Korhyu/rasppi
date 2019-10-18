@@ -11,14 +11,137 @@
 #include <math.h>
 #include "defines.h"
 
+
+void crear_datos ();
+int open_multicast_server();
+int ch_enviados();							//Funcion que analiza el paquete recivido y devuelve un nibble con '1' donde se envia un canal
+int send_msj(char*, int);
+char * crear_encabezado();
+
+
 struct in_addr localInterface;
 struct sockaddr_in groupSock;
 int sd;
-char datos[1000];
+char datos[MSJ_LENGTH - HEADER_SIZE];
 
 
 char databuf[MSJ_LENGTH] = "Mensaje de prueba Multicast";
 int datalen = sizeof(databuf);
+
+
+int main (int argc, char *argv[ ])
+{
+	/* Send a message to the multicast group specified by the*/
+	/* groupSock sockaddr structure. */
+	/*int datalen = 1024;*/
+	struct timeval tv;
+	long ticks;
+	int i=0;
+	int cont=0;
+	char timestamp[16];
+	char header[HEADER_SIZE];
+	char buffer[MSJ_LENGTH];
+	crear_datos();
+	char *posicion;
+
+	open_multicast_server();
+
+	//Envio de datos
+	while(1)
+	{
+		gettimeofday(&tv, NULL);
+		ticks= ((tv.tv_sec * 1000000 + tv.tv_usec));
+		sprintf(timestamp, "%ld", ticks);
+		strcat(buffer, timestamp);
+		strcat(buffer, "|");
+		strcat(buffer, crear_encabezado(header));
+		strcat(buffer, "|");
+		strcat(buffer, datos);
+
+		/*
+		if(sendto(sd, buffer, sizeof(buffer), 0, (struct sockaddr*)&groupSock, sizeof(groupSock)) < 0)
+		{
+			perror("Sending datagram message error");
+		}
+		else
+		{
+			i++;
+			strcpy(buffer,"\0");
+			
+			//Impresion de cantidad de mensajes enviados (para ver si el servidor esta vivo)
+			if( CANTIDAD_ENVIOS >= 1000)
+			{
+				if((i%(CANTIDAD_ENVIOS/10)) == 0)
+				{
+					printf("Mensaje n: %d de %d enviado\n",i, CANTIDAD_ENVIOS);
+				}
+			}
+
+			if(i >= CANTIDAD_ENVIOS)
+			{
+				strcpy(buffer,FIN_TRANSM);
+				if(sendto(sd, buffer, sizeof(buffer), 0, (struct sockaddr*)&groupSock, sizeof(groupSock)) < 0)
+				{
+					perror("Sending datagram message error");
+				}
+				printf("Fin de envios, enviados %d mensajes considerando el mensaje de fin\n",i+1);
+				break;
+			}
+			usleep(DEMORA_ENVIO);
+		}
+		*/
+
+		if (send_msj(buffer,sd) != 0)
+		{
+			i++;
+			strcpy(buffer,"\0");
+			/*
+			posicion = strpbrk(buffer, "|");
+			*posicion = '\0';
+			*/
+			
+			//Impresion de cantidad de mensajes enviados (para ver si el servidor esta vivo)
+			if( CANTIDAD_ENVIOS >= 1000)
+			{
+				if((i%(CANTIDAD_ENVIOS/10)) == 0)
+				{
+					printf("Mensaje n: %d de %d enviado\n",i, CANTIDAD_ENVIOS);
+				}
+			}
+
+			if(i >= CANTIDAD_ENVIOS)
+			{
+				strcpy(buffer,FIN_TRANSM);
+				if(sendto(sd, buffer, sizeof(buffer), 0, (struct sockaddr*)&groupSock, sizeof(groupSock)) < 0)
+				{
+					perror("Sending datagram message error");
+				}
+				printf("Fin de envios, enviados %d mensajes considerando el mensaje de fin\n",i+1);
+				break;
+			}
+			usleep(DEMORA_ENVIO);
+		}
+
+
+	}	
+	/* Try the re-read from the socket if the loopback is not disable
+	if(read(sd, databuf, sizeof(databuf)) < 0)
+	{
+	perror("Reading datagram message error\n");
+	close(sd);
+	exit(1);
+	}
+	else
+	{
+	printf("Reading datagram message from client...OK\n");
+	printf("The message is: %s\n", databuf);
+	}
+
+	*/
+
+	printf("Fin del programa\n");
+	return 0;
+}
 
 
 //Funcion para crear el venctor de datos a enviar
@@ -40,21 +163,20 @@ int ch_enviados()							//Funcion que analiza el paquete recivido y devuelve un 
 	return ch;
 }
 
-char * crear_encabezado()
+char * crear_encabezado(char* encabezado)
 {
 	/*Analizar si no es mejor dejar el timestamp en vez del cont_msj*/
 
 	char log_msj[8];			//Envio la cantidad de caracteres del mensaje sin contar los encabezados
 	char ch_env[8];				//Envia los canales que estan en el mensaje actuar
 	char msj_id[8];				//Un identificador del numero de mensaje enviado
-	char* encabezado;
 	static uint cont_msj = 0;
 
 	//char encabezado[strlen(log_msj) + strlen(ch_env) + strlen(msj_id) + 4];
-
-	if (((encabezado = malloc(sizeof(char) * (strlen(log_msj) + strlen(ch_env) + strlen(msj_id) + 4)))) == NULL)
+	/*
+	if (((encabezado = malloc(sizeof(char) * (sizeof(log_msj) + sizeof(ch_env) + sizeof(msj_id) + 4)))) == NULL)
        return (NULL);
-
+	*/
 
 	sprintf(log_msj, "%ld", strlen(datos));		//Verifico el largo del string
 	sprintf(ch_env, "%d", ch_enviados());					//Consigo los canales enviados *Harcodeados actualmente*
@@ -63,6 +185,7 @@ char * crear_encabezado()
 	cont_msj++;
 	cont_msj = cont_msj % 10000;			//Establezco un limite para el contador de mensajes
 
+	strcpy(encabezado, "\0");
 	strcat(encabezado, log_msj);
 	strcat(encabezado, "|");
 	strcat(encabezado, ch_env);
@@ -73,10 +196,8 @@ char * crear_encabezado()
 }
 
 
-
-int main (int argc, char *argv[ ])
+int open_multicast_server()
 {
-
 	/* Create a datagram socket on which to send. */
 	sd = socket(AF_INET, SOCK_DGRAM, 0);
 
@@ -125,83 +246,16 @@ int main (int argc, char *argv[ ])
 	else
 	    printf("Setting the local interface...OK\n");
 
-	/* Send a message to the multicast group specified by the*/
-	/* groupSock sockaddr structure. */
-	/*int datalen = 1024;*/
-	struct timeval tv;
-	long ticks;
-	int i=0;
-	int cont=0;
-	char timestamp[] = "1234567890123456";
-	char buffer[MSJ_LENGTH];
-	crear_datos();
-	char *posicion;
+	return sd;
+}
 
-	//Envio de datos
-	while(1)
+
+int send_msj (char* msj, int soc)
+{
+	if(sendto(soc, msj, sizeof(msj), 0, (struct sockaddr*)&groupSock, sizeof(groupSock)) < 0)
 	{
-		gettimeofday(&tv, NULL);
-		ticks= ((tv.tv_sec * 1000000 + tv.tv_usec));
-		sprintf(timestamp, "%ld", ticks);
-		strcat(buffer, timestamp);
-		strcat(buffer, "|");
-		strcat(buffer, crear_encabezado());
-		strcat(buffer, "|");
-		strcat(buffer, datos);
-
-		if(sendto(sd, buffer, sizeof(buffer), 0, (struct sockaddr*)&groupSock, sizeof(groupSock)) < 0)
-		{
-			perror("Sending datagram message error");
-		}
-		else
-		{
-			i++;
-			strcpy(buffer,"\0");
-			/*
-			posicion = strpbrk(buffer, "|");
-			*posicion = '\0';
-			*/
-			
-			//Impresion de cantidad de mensajes enviados (para ver si el servidor esta vivo)
-			if( CANTIDAD_ENVIOS >= 1000)
-			{
-				if((i%(1000000/DEMORA_ENVIO)) == 0)
-				{
-					printf("Mensaje n: %d enviado\n",i);
-				}
-			}
-
-			if(i >= CANTIDAD_ENVIOS)
-			{
-				strcpy(buffer,FIN_TRANSM);
-				if(sendto(sd, buffer, sizeof(buffer), 0, (struct sockaddr*)&groupSock, sizeof(groupSock)) < 0)
-				{
-					perror("Sending datagram message error");
-				}
-				printf("Fin de envios, enviados %d mensajes considerando el mensaje de fin\n",i+1);
-				return 0;
-			}
-			usleep(DEMORA_ENVIO);
-		}
-
-
-	}	
-	/* Try the re-read from the socket if the loopback is not disable
-	if(read(sd, databuf, sizeof(databuf)) < 0)
-	{
-	perror("Reading datagram message error\n");
-	close(sd);
-	exit(1);
+		perror("Sending datagram message error");
 	}
-	else
-	{
-	printf("Reading datagram message from client...OK\n");
-	printf("The message is: %s\n", databuf);
-	}
-
-	*/
-
-	printf("Fin del programa");
-	return 0;
-
+	else	
+		return 1;
 }
