@@ -12,21 +12,20 @@
 #include "defines.h"
 
 
-void crear_datos ();
+void crear_datos (int);
 int open_multicast_server();
 int ch_enviados();							//Funcion que analiza el paquete recivido y devuelve un nibble con '1' donde se envia un canal
 int send_msj(char*, int);
-char * crear_encabezado();
+char * crear_encabezado(char*, char*);
 
 
 struct in_addr localInterface;
 struct sockaddr_in groupSock;
 int sd;
-char datos[MSJ_LENGTH - HEADER_SIZE];
+char datos[MSJ_LENGTH - HEADER_SIZE - sizeof(FIN_TRAMA)];
 
+FILE* fptr;
 
-char databuf[MSJ_LENGTH] = "Mensaje de prueba Multicast";
-int datalen = sizeof(databuf);
 
 
 int main (int argc, char *argv[ ])
@@ -40,12 +39,15 @@ int main (int argc, char *argv[ ])
 	int cont=0;
 	char timestamp[16];
 	char header[HEADER_SIZE];
-	char buffer[MSJ_LENGTH];
-	crear_datos();
+	char buffer[MSJ_LENGTH] = "\0";
 	char *posicion;
 
 	open_multicast_server();
+	crear_datos(DATA_LENGTH);
 
+	fptr = fopen("send.txt", "w+");
+	fclose(fptr);
+	
 	//Envio de datos
 	while(1)
 	{
@@ -54,9 +56,11 @@ int main (int argc, char *argv[ ])
 		sprintf(timestamp, "%ld", ticks);
 		strcat(buffer, timestamp);
 		strcat(buffer, "|");
-		strcat(buffer, crear_encabezado(header));
+		strcat(buffer, crear_encabezado(datos, header));
 		strcat(buffer, "|");
 		strcat(buffer, datos);
+		strcat(buffer, FIN_TRAMA);
+
 
 		/*
 		if(sendto(sd, buffer, sizeof(buffer), 0, (struct sockaddr*)&groupSock, sizeof(groupSock)) < 0)
@@ -90,15 +94,16 @@ int main (int argc, char *argv[ ])
 			usleep(DEMORA_ENVIO);
 		}
 		*/
-
+		
 		if (send_msj(buffer,sd) != 0)
 		{
 			i++;
+
+			fptr = fopen("send.txt", "a+");
+			fprintf(fptr, "%s\n", buffer);
+			fclose(fptr);
+
 			strcpy(buffer,"\0");
-			/*
-			posicion = strpbrk(buffer, "|");
-			*posicion = '\0';
-			*/
 			
 			//Impresion de cantidad de mensajes enviados (para ver si el servidor esta vivo)
 			if( CANTIDAD_ENVIOS >= 1000)
@@ -121,11 +126,11 @@ int main (int argc, char *argv[ ])
 			}
 			usleep(DEMORA_ENVIO);
 		}
-
+		
 
 	}	
 	/* Try the re-read from the socket if the loopback is not disable
-	if(read(sd, databuf, sizeof(databuf)) < 0)
+	if(read(sd, buffer, sizeof(buffer)) < 0)
 	{
 	perror("Reading datagram message error\n");
 	close(sd);
@@ -134,7 +139,7 @@ int main (int argc, char *argv[ ])
 	else
 	{
 	printf("Reading datagram message from client...OK\n");
-	printf("The message is: %s\n", databuf);
+	printf("The message is: %s\n", buffer);
 	}
 
 	*/
@@ -143,15 +148,25 @@ int main (int argc, char *argv[ ])
 	return 0;
 }
 
+int send_msj (char* msj, int soc)
+{	
+	if(sendto(soc, msj, strlen(msj), 0, (struct sockaddr*)&groupSock, sizeof(groupSock)) < 0)
+	{
+		perror("Sending datagram message error");
+	}
+	else	
+		return 1;
+}
 
 //Funcion para crear el venctor de datos a enviar
-void crear_datos ()
+void crear_datos (int cant_datos)
 {
 	int i;
-	for(i = 0; i < sizeof(datos); i++)
+	for(i = 0; i < cant_datos; i++)
 	{
 		datos[i] = (i % 10) + 48;
 	}
+	*(datos+i) = '\0';
 }
 
 int ch_enviados()							//Funcion que analiza el paquete recivido y devuelve un nibble con '1' donde se envia un canal
@@ -163,7 +178,7 @@ int ch_enviados()							//Funcion que analiza el paquete recivido y devuelve un 
 	return ch;
 }
 
-char * crear_encabezado(char* encabezado)
+char * crear_encabezado(char* mensaje, char* encabezado)
 {
 	/*Analizar si no es mejor dejar el timestamp en vez del cont_msj*/
 
@@ -178,7 +193,7 @@ char * crear_encabezado(char* encabezado)
        return (NULL);
 	*/
 
-	sprintf(log_msj, "%ld", strlen(datos));		//Verifico el largo del string
+	sprintf(log_msj, "%ld", strlen(mensaje));		//Verifico el largo del string
 	sprintf(ch_env, "%d", ch_enviados());					//Consigo los canales enviados *Harcodeados actualmente*
 	sprintf(msj_id, "%d", cont_msj);			//Numero de identificacion del mensaje
 
@@ -247,15 +262,4 @@ int open_multicast_server()
 	    printf("Setting the local interface...OK\n");
 
 	return sd;
-}
-
-
-int send_msj (char* msj, int soc)
-{
-	if(sendto(soc, msj, sizeof(msj), 0, (struct sockaddr*)&groupSock, sizeof(groupSock)) < 0)
-	{
-		perror("Sending datagram message error");
-	}
-	else	
-		return 1;
 }

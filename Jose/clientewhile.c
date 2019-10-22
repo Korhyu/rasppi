@@ -9,13 +9,126 @@
 #include <sys/time.h>
 #include "defines.h"
    
+
+int open_multicast_client();					//Establece la conecion multicast cliente
+int get_timetag(char* , char*);					//Extrae el timetag del mensaje recivido
+int get_header(char*, char*, char*, char*);		//Extrae el header del mensaje recivido
+int get_data(char*, char*);						//remueve los caracteres de fin de trama
+
 struct sockaddr_in localSock;
 struct ip_mreq group;
 int sd;
-int datalen;
-char databuf[MSJ_LENGTH];
 
 FILE * fptr;
+
+int main(int argc, char *argv[])
+{
+	/* Read from the socket. */
+	struct timeval tv;
+	long ticks;
+	int cuenta=0;
+	char header[HEADER_SIZE];						//String donde almaceno los datos del Header para luego analizarlos
+	char buffer[MSJ_LENGTH];						//Buffer de mensaje recibido
+	char bufferp[MSJ_LENGTH];						//Buffer de mensaje recibido sin los caracteres de fin de trama
+	char data[MSJ_LENGTH - HEADER_SIZE] = "\0";		//string donde se almacenan los datos
+	char timetag[17];								//String donde almaceno el time tag
+	
+	// Si existe el archivo lo piso para crear uno nuevo
+	fptr = fopen("recive.txt", "w+");
+	fclose(fptr);
+	fptr = fopen("output.txt", "w+");
+	fclose(fptr);
+
+
+	open_multicast_client();
+
+	while (1)
+	{
+		if(read(sd, buffer, sizeof(buffer)) < 0)
+		{
+			perror("Reading datagram message error");
+			close(sd);
+			exit(1);
+		}
+		else
+		{
+			gettimeofday(&tv, NULL);
+			ticks= ((tv.tv_sec * 1000000 + tv.tv_usec));
+			cuenta++;
+
+			fptr = fopen("recive.txt", "a+");
+			fprintf(fptr, "%s\n",buffer);
+			fclose(fptr);
+
+			if(IMPRIMIR == 1)
+			{
+				printf("Reading N %d...OK.\n", cuenta);
+				printf("Mensaje enviado por el servidor: \"%s\"\n", buffer);
+				printf( "%d : %ld \n", cuenta, ticks);
+			}
+
+			get_data(buffer, bufferp);
+			get_header(bufferp, timetag, header, data);
+			
+			
+			fptr = fopen("output.txt", "a+");
+			fprintf(fptr, "%s,%ld,%s,%s\n",timetag, ticks, header, data);
+			fclose(fptr);
+			
+			if (strcmp(buffer,FIN_TRANSM) == 0)
+			{
+				printf("Fin de transmicion, recividos %d mensajes\n", cuenta);
+				return 0;
+			}
+		}
+	}
+	return 0;
+}
+
+
+int get_header(char* buf, char* ttp, char* hep, char* dat)
+{
+	int i;
+	int posp = 0;
+	int posu = 0;
+	int cont = 0;
+
+
+	//Busco la posicion del primer pipe y guardo la informacion del timetag
+	for(i=0; *(buf+i) != '|'; i++)
+	{
+		*(ttp+i) = *(buf+i);
+	}
+	*(ttp+i) = '\0';
+	posp = i;
+
+	//Busco la posicion del ultimo pipe
+	//Revisar si esta busqueda no esta al pedo y queda fija por alguno de los defines
+	for(i = sizeof(hep)+sizeof(ttp)+10; *(buf+i) != '|'; i--)
+	{
+		
+	}
+	posu = i;
+	
+	//Copio desde el primero hasta el ultimo caracter en el string header
+	for(i = posp; i <= posu ; i++)
+	{
+		*(hep+cont) = *(buf+i);
+		cont++;
+	}
+	*(hep+cont) = '\0';
+
+	
+	//Copio los datos
+	for(i = posu ; i < (strlen(buf)- posu) ; i++)
+	{
+		*(dat+i-posu) = *(buf+i+1);
+	}
+	*(dat+i-posu) = '\0';
+
+	return cont;
+}
+
 
 int get_timetag(char* data, char* ttp)
 {
@@ -27,52 +140,26 @@ int get_timetag(char* data, char* ttp)
 	return 0;
 }
 
-int get_header(char* data, char* ttp, char* hep)
+//Funcion que elimina los caracteres extra que aparecen al final de la transmicion
+int get_data (char* origen, char* destino)
 {
-	int i,posp,posu;
-	int cont=0;
+	int i;
 
-	//Busco la posicion del primer pipe
-	for(i=0; i<=40; i++)
+
+	for (i = strlen(origen); i > HEADER_SIZE; i--)
 	{
-		*(ttp+i) = *(data+i);
-
-		if(*(data+i) == '|')
-		{
-			posp = i;
+		if ( memcmp(origen+i,FIN_TRAMA, sizeof(FIN_TRAMA)) == 0 )
+			//Encontre los caracteres de fin de trama
 			break;
-		}
 	}
 
-	//Busco la posicion del ultimo pipe
-	for(i = sizeof(hep); i < posp; i--)
-	{
-		if(*(data+i) == '|')
-		{
-			posu = i;
+	memcpy(destino,origen,i);
+	strcat(destino, "\0");
 
-			break;
-		}
-	}
-
-		//Copio desde el primero hasta el ultimo en el string header
-	for(i = posp; i <= posu ; i++)
-	{
-		*(hep+i) = *(data+i);
-		cont++;
-	}
-	*(hep+i) = '\0';
-
-	/*
-	strncpy(ttp, data, 16);						//Copio los prieros 16 caracteres que son el timestamp
-	strcat(ttp, "\0");
-	*/
-
-	return cont;
+	return 0;
 }
 
-
-int main(int argc, char *argv[])
+int open_multicast_client ()
 {
 	/* Create a datagram socket on which to receive. */
 	sd = socket(AF_INET, SOCK_DGRAM, 0);
@@ -113,8 +200,7 @@ int main(int argc, char *argv[])
 	}
 
 	else
-
-	printf("Binding datagram socket...OK.\n");
+		printf("Binding datagram socket...OK.\n");
 
 	/* Join the multicast group 226.1.1.1 on the local 203.106.93.94 */
 	/* interface. Note that this IP_ADD_MEMBERSHIP option must be */
@@ -125,60 +211,13 @@ int main(int argc, char *argv[])
 	group.imr_interface.s_addr = inet_addr(IP_ADDR);
 	if(setsockopt(sd, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *)&group, sizeof(group)) < 0)
 	{
-	perror("Adding multicast group error");
-	close(sd);
-	exit(1);
+		perror("Adding multicast group error");
+		close(sd);
+		exit(1);
 	}
 
 	else
-	printf("Adding multicast group...OK.\n");
-	/* Read from the socket. */
-	datalen = sizeof(databuf);
-
-	struct timeval tv;
-	long ticks;
-	int cuenta=0;
-	char timetag[20];				//String donde almaceno el time tag
-	char header[200];				//String donde almaceno los datos del Header para luego analizarlos
-
-	// Si existe el archivo lo piso para crear uno nuevo
-	fptr = fopen("outputw.txt", "w+");
-	fclose(fptr);
-
-	while (1)
-	{
-		if(read(sd, databuf, datalen) < 0)
-		{
-			perror("Reading datagram message error");
-			close(sd);
-			exit(1);
-		}
-		else
-		{
-			gettimeofday(&tv, NULL);
-			ticks= ((tv.tv_sec * 1000000 + tv.tv_usec));
-			cuenta++;
-
-			if(IMPRIMIR == 1)
-			{
-				printf("Reading N %d...OK.\n", cuenta);
-				printf("Mensaje enviado por el servidor: \"%s\"\n", databuf);
-				printf( "%d : %ld \n", cuenta, ticks);
-			}
-
-			//get_timetag(databuf, timetag);
-			get_header(databuf, timetag, header);
-			
-			fptr = fopen("outputw.txt", "a+");
-			fprintf(fptr, "%s,%ld,%s\n",timetag, ticks,header);
-			fclose(fptr);
-
-			if (strcmp(databuf,FIN_TRANSM) == 0)
-			{
-				printf("Fin de transmicion, recividos %d mensajes\n", cuenta);
-				return 0;
-			}
-		}
-	}
-	return 0;
+		printf("Adding multicast group...OK.\n");
+	
+	//return sd;
 }
