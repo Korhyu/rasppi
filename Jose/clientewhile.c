@@ -13,7 +13,8 @@
 int open_multicast_client();					//Establece la conecion multicast cliente
 int get_timetag(char* , char*);					//Extrae el timetag del mensaje recivido
 int get_header(char*, char*, char*, char*);		//Extrae el header del mensaje recivido
-int get_data(char*, char*);						//remueve los caracteres de fin de trama
+int get_data(char*, char*);						//Remueve los caracteres de fin de trama
+int recv_msj(char*, int);						//Recive el msj desde el socket indicado
 
 struct sockaddr_in localSock;
 struct ip_mreq group;

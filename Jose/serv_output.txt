@@ -1,0 +1,4 @@
+Tiempo inicio 	1571871922895788
+Tiempo fin 		1571871980713271
+Tiempo total 	57817ms 	cantidad de mensajes enviados 10001
+Tiempo promedio por msj 5.781170ms

@@ -35,8 +35,10 @@ int main (int argc, char *argv[ ])
 	/*int datalen = 1024;*/
 	struct timeval tv;
 	long ticks;
-	int i=0;
-	int cont=0;
+	long t_start = 0;
+	long t_end = 0;
+	int i = 0;
+	int cont = 0;
 	char timestamp[16];
 	char header[HEADER_SIZE];
 	char buffer[MSJ_LENGTH] = "\0";
@@ -122,8 +124,18 @@ int main (int argc, char *argv[ ])
 					perror("Sending datagram message error");
 				}
 				printf("Fin de envios, enviados %d mensajes considerando el mensaje de fin\n",i+1);
+				
+				//Guardo el valor de inicio de la transmicion
+				t_end = ticks;
+
 				break;
 			}
+
+			//Guardo el valor de inicio de la transmicion
+			if (t_start == 0)
+				t_start = ticks;
+
+
 			usleep(DEMORA_ENVIO);
 		}
 		
@@ -143,6 +155,11 @@ int main (int argc, char *argv[ ])
 	}
 
 	*/
+
+	fptr = fopen("serv_output.txt", "w+");
+	fprintf(fptr, "Tiempo inicio \t%ld\nTiempo fin \t\t%ld\nTiempo total \t%ldms \tcantidad de mensajes enviados %d\nTiempo promedio por msj %fms", 
+		t_start, t_end, (t_end-t_start)/1000, i+1, (float)(t_end-t_start)/(1000*(i+1)));
+	fclose(fptr);
 
 	printf("Fin del programa\n");
 	return 0;
